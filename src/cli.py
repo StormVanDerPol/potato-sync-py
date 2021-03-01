@@ -2,9 +2,21 @@ import inquirer
 import chalk
 import time
 
+import signal
+import sys
+
 import filehandler
 from action import determine
 from clearscreen import clearscreen
+
+from pyfiglet import Figlet
+
+def sigint_handler(sig, frame):
+    clearscreen()
+    print("Shutting down...")
+    sys.exit(0)
+    
+signal.signal(signal.SIGINT, sigint_handler)
 
 # states:
 # default - Displays menu.
@@ -17,11 +29,32 @@ def error_state(value):
         return err
     err = value
 
+def config():
+    print(chalk.blue("Needs world name and dropbox token to make this work, make sure dropbox has appropriate rights\n"))
+
+    server_name = input( "[" + chalk.yellow("?") + "] World name (not case sensitive): ")
+    token = input( "[" + chalk.yellow("?") + "] Dropbox access token: ")
+
+    is_valid = filehandler.test_auth(token)
+
+    if is_valid:
+        filehandler.set_config({"server-name": server_name, "token": token})
+        menu("default")
+    else:
+        clearscreen()
+        print(chalk.red("Couldn't communicate with dropbox, try again"))
+        config()
+        
+        
+
 
 def menu(state):
 
     if state == "welcome":
         clearscreen()
+        f = Figlet(font='slant')
+        print(chalk.yellow(f.renderText("Potato Sync 9000")))
+
         print(
             "Ahoy! Welcome to the hopefully new and improved "
             + chalk.yellow("Potato Sync 9000!")
@@ -43,6 +76,19 @@ def menu(state):
         )
 
     print("\n---------------------------")
+    conf = filehandler.get_config()
+    valid_token = filehandler.test_auth(conf["token"])
+
+    if not valid_token:
+        print(chalk.red("Couldn't communicate with dropbox!"))
+
+    if not conf or not valid_token:
+        config()
+        return
+
+    print(chalk.green("server name is ") + chalk.blue(conf["server-name"]))
+    print(chalk.green("dropbox token is set\n"))
+
     questions = [
         inquirer.List(
             "action",
@@ -50,6 +96,7 @@ def menu(state):
             choices=[
                 "sync",
                 "check",
+                "change settings",
                 "delete cli bak",
                 "exit",
             ],
@@ -63,12 +110,13 @@ def menu(state):
     if selected == "exit":
         print(chalk.red("Bye~"))
         time.sleep(1)
-
-    if selected == "delete cli bak":
+    elif selected == "change settings":
+        signal.signal(signal.SIGINT, sigint_cancel_edit_config_handler)
+        config()
+    elif selected == "delete cli bak":
         filehandler.delete_backups()
         menu("default")
-
-    if selected == "check":
+    elif selected == "check":
         remote = filehandler.get_remote()
         local = filehandler.get_local()
 
@@ -81,7 +129,7 @@ def menu(state):
                 + chalk.blue(action)
             )
         menu("default")
-    if selected == "sync":
+    elif selected == "sync":
         remote = filehandler.get_remote()
         local = filehandler.get_local()
         if not error_state(None):

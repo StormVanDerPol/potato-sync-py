@@ -1,4 +1,3 @@
-from common import is_serverfile
 import cli
 from dateutil import parser as dp
 import requests
@@ -9,18 +8,58 @@ import pathlib
 from os import getenv, path, listdir, pardir
 from halo import Halo
 from time import time
+import re
 
 worldspath = path.abspath(
     path.join(getenv("APPDATA"), pardir, "LocalLow/IronGate/Valheim/worlds")
 )
 
-token = "[REDACTED]"
+confpath = path.join(worldspath, "potato-config.json")
 
+def is_serverfile(file):
+    servername = get_config()["server-name"]
+
+    pattern = r".*?(?=\.)"
+    m = re.search(pattern, file["name"])
+    noextname = m.group(0) if m else file["name"]
+   
+
+    """Checks if file includes server name and wether it's a backup file"""
+    if file["name"].endswith(".old") or file["name"].endswith(".bak"):
+        return False
+    return noextname.lower() == servername.lower()
+
+
+def get_token():
+    return "Bearer " + get_config()["token"]
+
+def test_auth(token):
+    url = "https://api.dropboxapi.com/2/check/user"
+    headers = {
+        "Authorization":  "Bearer " + token,
+        "Content-Type": "application/json"
+    }
+    r = requests.post(url, headers=headers, data=json.dumps({}))
+    return r.status_code == 200
+
+def get_config():
+
+    if not path.exists(confpath):
+        return
+
+    with open(confpath, "r") as conf:
+        return json.loads(conf.read())
+      
+def set_config(o):
+
+    with open(confpath, "w") as conf:
+        parsed = json.dumps(o)
+        conf.write(parsed)
 
 def listfolder():
     url = "https://api.dropboxapi.com/2/files/list_folder"
     headers = {
-        "Authorization": token,
+        "Authorization": get_token(),
         "Content-Type": "application/json",
     }
     data = {"path": ""}
@@ -108,7 +147,7 @@ def push(local):
 
     for entry in local:
         headers = {
-            "Authorization": token,
+            "Authorization": get_token(),
             "Content-Type": "application/octet-stream",
             "Dropbox-API-Arg": json.dumps(
                 {
@@ -139,7 +178,7 @@ def pull(remote):
 
     for entry in remote:
         headers = {
-            "Authorization": token,
+            "Authorization": get_token(),
             "Dropbox-API-Arg": '{"path":"/' + entry["name"] + '"}',
         }
         res = requests.post(url, headers=headers, stream=True)
