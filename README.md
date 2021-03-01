@@ -4,4 +4,4 @@
 
 To prevent this:
 
-<!-- insert bernie here -->
+![Bernie](https://raw.githubusercontent.com/StormVanDerPol/potato-sync-py/master/shenanigans/bernie.jpg)
