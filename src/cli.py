@@ -116,7 +116,6 @@ def menu(state):
         print(chalk.red("Bye~"))
         time.sleep(1)
     elif selected == "change settings":
-        signal.signal(signal.SIGINT, sigint_cancel_edit_config_handler)
         config()
     elif selected == "delete cli bak":
         filehandler.delete_backups()
