@@ -77,12 +77,17 @@ def menu(state):
 
     print("\n---------------------------")
     conf = filehandler.get_config()
+
+    if not conf:
+        config()
+        return
+
     valid_token = filehandler.test_auth(conf["token"])
 
     if not valid_token:
         print(chalk.red("Couldn't communicate with dropbox!"))
 
-    if not conf or not valid_token:
+    if not valid_token:
         config()
         return
 
