@@ -2,7 +2,7 @@ import cli
 
 cli.menu("welcome")
 
-# Horrible python naming conventions:
+# python naming conventions for reference :3
 # module_name,
 # package_name,
 # ClassName,
